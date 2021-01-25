@@ -32,18 +32,17 @@ def softmax_loss_naive(W, X, y, reg):
     # regularization!                                                           #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    num_train = X.shape[0]
-    num_classes = W.shape[1]
-    for i in range(num_train):
+    n = len(X)
+    for i in range(n):
         f = X[i] @ W
         f -= np.max(f)
-        softmax = np.exp(f) / np.sum(np.exp(f))
-        loss -= np.log(softmax[y[i]])
-        for j in range(num_classes):
-            dW[:, j] += X[i,:] * softmax[j]
-        dW[:, y[i]] -= X[i,:]
-    dW = dW / num_train + reg * W
-    loss = loss / num_train + reg * np.sum(np.square(W)) / 2
+        den = np.sum(np.exp(f))
+        loss -= np.log(np.exp(f[y[i]])/den)
+        for j in range(len(f)):
+            dW[:, j] += X[i] * np.exp(f[j])/den
+        dW[:, y[i]] -= X[i]
+    dW = dW / n + reg * W
+    loss = loss / n + reg * np.sum(np.square(W)) / 2
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss, dW
 
