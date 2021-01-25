@@ -11,7 +11,7 @@ def softmax_loss_naive(W, X, y, reg):
     of N examples.
 
     Inputs:
-    - W: A numpy array of shape (D, C) containing weights.
+    - W: A numpy array of shape (D, C) containing weights. D=3073, C=10 (cifar)
     - X: A numpy array of shape (N, D) containing a minibatch of data.
     - y: A numpy array of shape (N,) containing training labels; y[i] = c means
       that X[i] has label c, where 0 <= c < C.
@@ -32,11 +32,19 @@ def softmax_loss_naive(W, X, y, reg):
     # regularization!                                                           #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-
+    num_train = X.shape[0]
+    num_classes = W.shape[1]
+    for i in range(num_train):
+        f = X[i] @ W
+        f -= np.max(f)
+        softmax = np.exp(f) / np.sum(np.exp(f))
+        loss -= np.log(softmax[y[i]])
+        for j in range(num_classes):
+            dW[:, j] += X[i,:] * softmax[j]
+        dW[:, y[i]] -= X[i,:]
+    dW = dW / num_train + reg * W
+    loss = loss / num_train + reg * np.sum(np.square(W)) / 2
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
     return loss, dW
 
 
