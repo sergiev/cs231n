@@ -3,6 +3,7 @@ import numpy as np
 from random import shuffle
 from past.builtins import xrange
 
+
 def softmax_loss_naive(W, X, y, reg):
     """
     Softmax loss function, naive implementation (with loops)
@@ -37,9 +38,9 @@ def softmax_loss_naive(W, X, y, reg):
         f = X[i] @ W
         f -= np.max(f)
         den = np.sum(np.exp(f))
-        loss -= np.log(np.exp(f[y[i]])/den)
+        loss -= np.log(np.exp(f[y[i]]) / den)
         for j in range(len(f)):
-            dW[:, j] += X[i] * np.exp(f[j])/den
+            dW[:, j] += X[i] * np.exp(f[j]) / den
         dW[:, y[i]] -= X[i]
     dW = dW / n + reg * W
     loss = loss / n + reg * np.sum(np.square(W)) / 2
@@ -64,9 +65,16 @@ def softmax_loss_vectorized(W, X, y, reg):
     # regularization!                                                           #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-
+    n = len(X)
+    f = X @ W
+    f -= np.max(f, axis=1)[:, np.newaxis]
+    exp_f = np.exp(f)
+    correct_class_idx = y + W.shape[1] * np.arange(n)
+    softmax = exp_f / np.sum(exp_f, axis=1)[:, np.newaxis]
+    loss = np.sum(-np.log(np.take(softmax, correct_class_idx))) / n
+    loss += 0.5 * reg * np.sum(W * W)
+    softmax[np.arange(n), y] -= 1
+    dW = X.T.dot(softmax) / n + reg * W
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     return loss, dW
