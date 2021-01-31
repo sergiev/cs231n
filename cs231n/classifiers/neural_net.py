@@ -81,9 +81,9 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        a1 = np.max(0, X @ W1 + b1)
-        a2 = a1 @ W2 + b2
-        scores = np.exp(a2) / np.sum(np.exp(a2), axis=1)[:, np.newaxis]
+        hidden = np.maximum(np.zeros(N, len(b1)), X @ W1 + b1)
+        exp = np.exp(hidden @ W2 + b2)
+        scores = exp / np.sum(exp, axis=1)[:, np.newaxis]
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -102,7 +102,8 @@ class TwoLayerNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         correct_class_idx = y + len(b2) * np.arange(N)
-
+        loss = np.sum(-np.log(np.take(scores, correct_class_idx))) / N
+        loss += 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -115,8 +116,17 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        dscores = scores
+        dscores[np.arange(N), y] -= 1
+        dscores = scores / N
 
+        grads['W2'] = X.T.dot(dscores) / N + reg * W2
+        grads['b2'] = np.sum(dscores, axis=0, keepdims=True)
+
+        dhidden = dscores @ W2.T
+        dhidden[hidden < 0] = 0
+        grads['W1'] = np.dot(X.T, dhidden)
+        grads['b1'] = np.sum(dhidden, axis=0, keepdims=True)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
