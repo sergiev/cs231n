@@ -6,18 +6,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from past.builtins import xrange
 
-
 class TwoLayerNet(object):
     """
-    A two-layer fully-connected neural network. The net has an input dimension of
-    N, a hidden layer dimension of H, and performs classification over C classes.
-    We train the network with a softmax loss function and L2 regularization on the
-    weight matrices. The network uses a ReLU nonlinearity after the first fully
-    connected layer.
+    A two-layer fully-connected neural network.
+    
+    The net has an input dimension of N,
+    a hidden layer dimension of H,
+    and performs classification over C classes.
+    
+    We train the network with a softmax loss function and L2 regularization on the weight matrices.
+    The network uses a ReLU nonlinearity after the first fully connected layer.
 
     In other words, the network has the following architecture:
 
-    input - fully connected layer - ReLU - fully connected layer - softmax
+    input => fully connected layer => ReLU => fully connected layer => softmax
 
     The outputs of the second fully-connected layer are the scores for each class.
     """
@@ -80,10 +82,9 @@ class TwoLayerNet(object):
         # shape (N, C).                                                             #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        hidden = np.maximum(np.zeros(N, len(b1)), X @ W1 + b1)
-        exp = np.exp(hidden @ W2 + b2)
-        scores = exp / np.sum(exp, axis=1)[:, np.newaxis]
+        
+        hidden_layer = np.maximum(0, np.dot(X, W1) + b1)
+        scores = np.dot(hidden_layer, W2) + b2 
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -100,11 +101,19 @@ class TwoLayerNet(object):
         # classifier loss.                                                          #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        correct_class_idx = y + len(b2) * np.arange(N)
-        loss = np.sum(-np.log(np.take(scores, correct_class_idx))) / N
-        loss += 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
-
+        
+        # формула дана здесь: http://cs231n.github.io/neural-networks-case-study/#net
+        # compute the class probabilities
+        exp_scores = np.exp(scores)
+        probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True) # [N x C]
+        
+        # compute the loss: average cross-entropy loss and regularization
+        correct_logprobs = -np.log(probs[range(N),y])
+        data_loss = np.sum(correct_logprobs)/N
+        reg_loss = 0.5*reg*np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2)
+        loss = data_loss + reg_loss
+        
+      
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # Backward pass: compute gradients
@@ -115,18 +124,30 @@ class TwoLayerNet(object):
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        dscores = scores
-        dscores[np.arange(N), y] -= 1
-        dscores = scores / N
-
-        grads['W2'] = X.T.dot(dscores) / N + reg * W2
+        dscores = probs
+        dscores[range(N),y] -= 1
+        dscores /= N
+  
+        # backpropate the gradient to the parameters
+        # first backprop into parameters W2 and b2
+        grads['W2'] = np.dot(hidden_layer.T, dscores)
         grads['b2'] = np.sum(dscores, axis=0, keepdims=True)
-
-        dhidden = dscores @ W2.T
-        dhidden[hidden < 0] = 0
+          
+        # next backprop into hidden layer
+        dhidden = np.dot(dscores, W2.T)
+        
+        # backprop the ReLU non-linearity
+        dhidden[hidden_layer <= 0] = 0
+  
+        # finally into W,b
         grads['W1'] = np.dot(X.T, dhidden)
         grads['b1'] = np.sum(dhidden, axis=0, keepdims=True)
+  
+        # add regularization gradient contribution
+        grads['W2'] += reg * W2
+        grads['W1'] += reg * W1
+  
+      
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
@@ -170,7 +191,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            indexes = np.random.choice(X.shape[0], size=batch_size)
+            X_batch = X[indexes]
+            y_batch = y[indexes]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -185,8 +208,9 @@ class TwoLayerNet(object):
             # stored in the grads dictionary defined above.                         #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
+             
+            for param_name in grads:
+                self.params[param_name] = self.params[param_name] - learning_rate * grads[param_name]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -205,9 +229,9 @@ class TwoLayerNet(object):
                 learning_rate *= learning_rate_decay
 
         return {
-            'loss_history': loss_history,
-            'train_acc_history': train_acc_history,
-            'val_acc_history': val_acc_history,
+          'loss_history': loss_history,
+          'train_acc_history': train_acc_history,
+          'val_acc_history': val_acc_history,
         }
 
     def predict(self, X):
@@ -232,7 +256,8 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        scores = self.loss(X)
+        y_pred = np.argmax(scores, axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
