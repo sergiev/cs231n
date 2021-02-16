@@ -206,7 +206,10 @@ class FullyConnectedNet(object):
         for i in range(1,self.num_layers):
             self.params[f'W{i}'] = weight_scale * np.random.randn(*hidden_dims[i-1:i+1])
             self.params[f'b{i}'] = np.zeros(hidden_dims[i])
-
+        if normalization=="batchnorm":
+            for i,dim in enumerate(hidden_dims):
+                self.params[f'gamma{i+1}'] = np.ones(dim,dtype=float)
+                self.params[f'beta{i+1}'] = np.zeros(dim,dtype=float)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -269,9 +272,17 @@ class FullyConnectedNet(object):
         h = [X] * (self.num_layers-1)
         cache = [None] * self.num_layers
         for i in range(1,self.num_layers-1):
-            h[i], cache[i] = affine_relu_forward(h[i-1],
-                                                 self.params[f'W{i}'],
-                                                 self.params[f'b{i}'])
+            if self.normalization=="batchnorm":
+                h[i], cache[i] = affine_bn_relu_forward(h[i-1],
+                                                        self.params[f'W{i}'],
+                                                        self.params[f'b{i}'],
+                                                        self.params[f"gamma{i}"],
+                                                        self.params[f"beta{i}"],
+                                                        self.bn_params(i))
+            else:
+                h[i], cache[i] = affine_relu_forward(h[i-1],
+                                                     self.params[f'W{i}'],
+                                                     self.params[f'b{i}'])
         scores, cache[-1] = affine_forward(h[-1],
                                            self.params[f'W{len(h)}'],
                                            self.params[f'b{len(h)}'])
