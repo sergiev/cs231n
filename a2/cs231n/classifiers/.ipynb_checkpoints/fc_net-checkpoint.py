@@ -271,6 +271,8 @@ class FullyConnectedNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         h = [X] * (self.num_layers)
         cache = [None] * self.num_layers
+        dropout_cache = [None] * self.num_layers
+        
         for i in range(0,self.num_layers-1):
             if self.normalization == "batchnorm":
                 h[i+1], cache[i] = affine_bn_relu_forward(h[i],
@@ -290,6 +292,9 @@ class FullyConnectedNet(object):
                 h[i+1], cache[i] = affine_relu_forward(h[i],
                                                        self.params[f'W{i}'],
                                                        self.params[f'b{i}'])
+            if self.use_dropout:
+                h[i+1],dropout_cache[i] = dropout_forward(h[i+1],self.dropout_param)
+                
         scores, cache[-1] = affine_forward(h[-1],
                                            self.params[f'W{len(h)-1}'],
                                            self.params[f'b{len(h)-1}'])
@@ -324,14 +329,15 @@ class FullyConnectedNet(object):
         for i in range(self.num_layers-2, -1, -1):
             W = self.params[f'W{i}']
             loss += 0.5 * self.reg * (np.sum(W * W))
+            if self.use_dropout:
+                grad = dropout_backward(grad,dropout_cache[i])
             if self.normalization == 'batchnorm':
                 grad, grads[f'W{i}'], grads[f'b{i}'], grads[f'gamma{i}'], grads[f'beta{i}'] = affine_bn_relu_backward(grad, cache[i])
             elif self.normalization == 'layernorm':
                 grad, grads[f'W{i}'], grads[f'b{i}'], grads[f'gamma{i}'], grads[f'beta{i}'] = affine_ln_relu_backward(grad, cache[i])
             else:
                 grad, grads[f'W{i}'], grads[f"b{i}"] = affine_relu_backward(grad, cache[i])
-                
-            grads[f'W{i}'] +=self.reg * W
+            grads[f'W{i}'] += self.reg * W
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
