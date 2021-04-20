@@ -125,7 +125,7 @@ def class_visualization_update_step(X, model, target_y, l2_reg, learning_rate):
             scores_target = scores[0,target_y]
             if scores_target == np.max(scores):
                 break
-            grad = tape.gradient(scores_target, X_fooling)
+            grad = tape.gradient(scores_target, X)
             X += learning_rate * l2_reg * tf.math.l2_normalize(grad)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
