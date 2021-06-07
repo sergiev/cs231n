@@ -10,8 +10,8 @@ from .image_utils import SQUEEZENET_MEAN, SQUEEZENET_STD
 
 dtype = torch.FloatTensor
 # Uncomment out the following line if you're on a machine with a GPU set up for PyTorch!
-#dtype = torch.cuda.FloatTensor
-def content_loss(content_weight, content_current, content_original):
+# dtype = torch.cuda.FloatTensor
+def content_loss(content_weight, content_current, content_target):
     """
     Compute the content loss for style transfer.
 
@@ -26,7 +26,8 @@ def content_loss(content_weight, content_current, content_original):
     """
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    diff = content_current - content_target
+    return content_weight * torch.sum(torch.norm(diff)**2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -46,8 +47,19 @@ def gram_matrix(features, normalize=True):
     """
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
-
+    N, C, H, W = features.shape
+    M = H * W
+    feat = features.reshape(N,C,M)
+    gram = torch.zeros((N,C,C))
+#  slow version
+#     for i in range(C):
+#         for j in range(C):
+#             gram[:,i,j] = sum([feat[:,i,k] * feat[:,j,k] for k in range(M)])
+    for i in range(N):
+        gram[i] = feat[i] @ feat[i].T
+    if normalize:
+        gram/=M*C
+    return gram
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 # Now put it together in the style_loss function...
@@ -72,9 +84,13 @@ def style_loss(feats, style_layers, style_targets, style_weights):
     # Hint: you can do this with one for loop over the style layers, and should
     # not be very much code (~5 lines). You will need to use your gram_matrix function.
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-
+    loss = torch.Tensor([0])
+    lw = dict(zip(style_layers, style_weights))
+    i = 0
+    for layer_idx,weight in lw.items():
+        loss += content_loss(weight,gram_matrix(feats[layer_idx]),style_targets[i])
+        i+=1
+    return loss
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
 def tv_loss(img, tv_weight):
@@ -92,7 +108,11 @@ def tv_loss(img, tv_weight):
     # Your implementation should be vectorized and not require any loops!
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    v_shift = torch.roll(img,1,2)
+    v_shift[:,:,0,:] = img[:,:,0,:]
+    h_shift = torch.roll(img,1,3)
+    h_shift[:,:,:,0] = img[:,:,:,0]
+    return torch.Tensor([tv_weight*(content_loss(1,img,v_shift) + content_loss(1,img,h_shift))])
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 def preprocess(img, size=512):

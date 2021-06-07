@@ -120,13 +120,13 @@ def class_visualization_update_step(X, model, target_y, l2_reg, learning_rate):
     X = tf.convert_to_tensor(X)
     with tf.GradientTape(persistent=True) as tape:
         tape.watch(X)
-        while True:
-            scores = model.call(X)
-            scores_target = scores[0,target_y]
-            if scores_target == np.max(scores):
-                break
-            grad = tape.gradient(scores_target, X)
-            X += learning_rate * l2_reg * tf.math.l2_normalize(grad)
+    while True:
+        scores = model.call(X)
+        scores_target = scores[0,target_y]
+        if scores_target == np.max(scores):
+            break
+        grad = tape.gradient(scores_target, X)
+        X += learning_rate * l2_reg * grad
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ############################################################################
